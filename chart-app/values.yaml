@@ -14,8 +14,8 @@ namespace:
 
 serviceAccount:
   create: false
-  annotations: {}
   name: ""
+  annotations: {}
 
 podAnnotations: {}
 

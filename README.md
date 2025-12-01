@@ -8,17 +8,17 @@ Chart Helm que entrega um Deployment NGINX com Service e HPA opcional.
 ## Uso rápido
 ```bash
 # validar templates
-helm lint .
-helm template . --debug
+helm lint chart-app
+helm template chart-app --debug
 
 # instalar/atualizar
-helm upgrade --install app chart-app -n demo-app --create-namespace
+helm upgrade --install my-app chart-app -n demo-app --create-namespace
 
 # rodar hook de teste (faz curl no service)
-helm test app -n demo
+helm test my-app -n demo-app
 
 # remover
-helm uninstall app -n demo
+helm uninstall my-app -n demo-app
 ```
 
 ## Configuração (values.yaml)
@@ -28,11 +28,12 @@ Principais valores que você pode ajustar:
 | --- | --- | --- |
 | `replicaCount` | Réplicas quando HPA desabilitado | `2` |
 | `image.repository` | Imagem do container | `nginx` |
-| `image.tag` | Tag da imagem | `"1.27"` |
+| `image.tag` | Tag da imagem | `"latest"` |
 | `image.pullPolicy` | Política de pull | `IfNotPresent` |
 | `imagePullSecrets` | Lista de secrets de pull | `[]` |
 | `nameOverride` / `fullnameOverride` | Sobrescreve nomes gerados | `""` |
-| `serviceAccount.create` | Cria ServiceAccount dedicado | `true` |
+| `namespace.name` | Nome do namespace a ser usado/criado | `demo-app` (exemplo) |
+| `serviceAccount.create` | Cria ServiceAccount dedicado | `false` |
 | `serviceAccount.annotations` | Anotações no ServiceAccount | `{}` |
 | `serviceAccount.name` | Nome do SA (deixa vazio para gerar) | `""` |
 | `podAnnotations` | Anotações extras no Pod | `{}` |
@@ -43,7 +44,8 @@ Principais valores que você pode ajustar:
 | `service.port` | Porta exposta pelo Service | `80` |
 | `service.name` | Nome da porta/targetPort | `"http"` |
 | `service.protocol` | Protocolo da porta | `"TCP"` |
-| `resources` | Requests/limits de CPU/Mem | `{}` |
+| `resources.limits` | Limits de CPU/Mem | `200m`, `256Mi` |
+| `resources.requests` | Requests de CPU/Mem | `100m`, `128Mi` |
 | `nodeSelector` | Node selector | `{}` |
 | `tolerations` | Tolerations | `[]` |
 | `affinity` | Affinity | `{}` |
