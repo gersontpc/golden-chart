@@ -1,16 +1,19 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: nginx
-  tag: "1.27"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+namespace:
+  name: "demo-app"
+
 serviceAccount:
-  create: true
+  create: false
   annotations: {}
   name: ""
 
@@ -26,16 +29,18 @@ securityContext: {}
   # runAsNonRoot: true
 
 service:
+  name: "http"
+  protocol: "TCP"
   type: ClusterIP
   port: 80
 
-resources: {}
-  # limits:
-  #   cpu: 200m
-  #   memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
 nodeSelector: {}
 

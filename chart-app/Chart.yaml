@@ -1,5 +1,5 @@
 apiVersion: v2
-name: my-app
+name: app
 description: A simple app with Deployment, Service and HPA
 type: application
 version: 0.1.0

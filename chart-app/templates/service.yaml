@@ -1,15 +1,18 @@
+{{- if .Values.service.name }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "my-app.fullname" . }}
+  name: {{ include "app.fullname" . }}
+  namespace: {{ .Values.namespace.name | default .Release.Namespace }}
   labels:
-    {{- include "my-app.labels" . | nindent 4 }}
+    {{- include "app.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   selector:
-    {{- include "my-app.selectorLabels" . | nindent 4 }}
+    {{- include "app.selectorLabels" . | nindent 4 }}
   ports:
     - name: {{ .Values.service.name | default "http" }}
       port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.name | default "http" }}
       protocol: {{ .Values.service.protocol | default "TCP" }}
+{{- end }}

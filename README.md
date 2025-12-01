@@ -12,13 +12,13 @@ helm lint .
 helm template . --debug
 
 # instalar/atualizar
-helm upgrade --install my-app . -n demo --create-namespace
+helm upgrade --install app chart-app -n demo-app --create-namespace
 
 # rodar hook de teste (faz curl no service)
-helm test my-app -n demo
+helm test app -n demo
 
 # remover
-helm uninstall my-app -n demo
+helm uninstall app -n demo
 ```
 
 ## Configuração (values.yaml)
