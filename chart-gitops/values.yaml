@@ -1,0 +1,33 @@
+application:
+  name: golden-app
+  namespace: argocd
+
+project: default
+
+source:
+  repoURL: https://github.com/gersontpc/golden-chart
+  targetRevision: HEAD
+  path: chart-app
+
+# Para múltiplos repositórios/fontes, use "sources" (prioritário sobre "source")
+# sources:
+#   - repoURL: https://github.com/gersontpc/golden-chart
+#     targetRevision: HEAD
+#     path: chart-app
+#   - repoURL: https://github.com/org/other-repo
+#     targetRevision: main
+#     path: another-chart
+#   - repoURL: https://charts.bitnami.com/bitnami
+#     targetRevision: 15.1.0
+#     chart: nginx
+
+destination:
+  server: https://kubernetes.default.svc
+  namespace: demo-app
+
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true

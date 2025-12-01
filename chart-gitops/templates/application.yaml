@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.application.name }}
+  namespace: {{ .Values.application.namespace }}
+spec:
+  project: {{ .Values.project }}
+{{- if .Values.sources }}
+  sources:
+{{- range .Values.sources }}
+    - repoURL: {{ .repoURL | quote }}
+      targetRevision: {{ .targetRevision | quote }}
+      {{- if .path }}
+      path: {{ .path | quote }}
+      {{- end }}
+      {{- if .chart }}
+      chart: {{ .chart | quote }}
+      {{- end }}
+      {{- with .helm }}
+      helm:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .directory }}
+      directory:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- else }}
+  source:
+    repoURL: {{ .Values.source.repoURL | quote }}
+    targetRevision: {{ .Values.source.targetRevision | quote }}
+    path: {{ .Values.source.path | quote }}
+{{- end }}
+  destination:
+    server: {{ .Values.destination.server | quote }}
+    namespace: {{ .Values.destination.namespace | quote }}
+  syncPolicy:
+    automated:
+      prune: {{ .Values.syncPolicy.automated.prune | default false }}
+      selfHeal: {{ .Values.syncPolicy.automated.selfHeal | default false }}
+    syncOptions:
+{{- range .Values.syncPolicy.syncOptions }}
+      - {{ . }}
+{{- end }}
