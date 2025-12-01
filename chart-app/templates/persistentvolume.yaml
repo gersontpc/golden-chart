@@ -1,0 +1,25 @@
+{{- if .Values.persistentVolume.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "app.fullname" . }}-pv
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.persistentVolume.size }}
+  accessModes:
+    {{- toYaml .Values.persistentVolume.accessModes | nindent 4 }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.persistentVolume.storageClassName }}
+  {{- if .Values.persistentVolume.hostPath }}
+  hostPath:
+    path: {{ .Values.persistentVolume.hostPath.path }}
+    type: {{ .Values.persistentVolume.hostPath.type }}
+  {{- end }}
+  {{- if .Values.persistentVolume.nfs }}
+  nfs:
+    server: {{ .Values.persistentVolume.nfs.server }}
+    path: {{ .Values.persistentVolume.nfs.path }}
+  {{- end }}
+{{- end }}

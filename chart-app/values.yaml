@@ -1,53 +1,350 @@
-replicaCount: 2
+app:
+  # Tipo de workload principal deste chart:
+  # deployment | job | cronjob | daemonset | statefulset | rc
+  type: deployment
 
+# -----------------------------------------------------
+# Imagem principal
+# -----------------------------------------------------
 image:
   repository: nginx
-  tag: "1.27"
+  tag: latest
   pullPolicy: IfNotPresent
 
+# Secrets para pull de imagem (usado em imagePullSecrets)
+# Ex:
+# imagePullSecrets:
+#   - name: my-registry-secret
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
 
-serviceAccount:
-  create: true
-  annotations: {}
-  name: ""
+container:
+  port: 8080
 
-podAnnotations: {}
+# -----------------------------------------------------
+# Réplicas e recursos (boa prática para kube-score)
+# -----------------------------------------------------
+replicaCount: 3
 
-podLabels: {}
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
 
-podSecurityContext: {}
-  # fsGroup: 2000
+# -----------------------------------------------------
+# Probes HTTP (startup, readiness, liveness)
+# -----------------------------------------------------
+probes:
+  startup:
+    path: /health/startup
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 30    # geralmente alto pra startup
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  liveness:
+    path: /health/live
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    timeoutSeconds: 2
+    failureThreshold: 3
 
-securityContext: {}
-  # runAsUser: 1000
-  # runAsNonRoot: true
-
+# -----------------------------------------------------
+# Service
+# -----------------------------------------------------
 service:
   type: ClusterIP
   port: 80
 
-resources: {}
-  # limits:
-  #   cpu: 200m
-  #   memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# -----------------------------------------------------
+# Ingress
+# -----------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: sua-app.example.com
+      path: /
+  tls: []
 
+# -----------------------------------------------------
+# CronJob
+# -----------------------------------------------------
+cronjob:
+  enabled: false
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  image:
+    repository: ghcr.io/sua-org/sua-app-cron
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  command:
+    - "/bin/sh"
+    - "-c"
+    - "echo 'running job' && ./script"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+# -----------------------------------------------------
+# HPA nativo
+# -----------------------------------------------------
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+# -----------------------------------------------------
+# KEDA
+# -----------------------------------------------------
+keda:
+  enabled: false
+  minReplicas: 0
+  maxReplicas: 20
+  cooldownPeriod: 300
+  pollingInterval: 30
+  triggers: []
+
+# -----------------------------------------------------
+# NetworkPolicy - Default deny + permissões explícitas
+# -----------------------------------------------------
+networkPolicy:
+  enabled: true
+  ingress:
+    from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/component: ingress
+  egress:
+    to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+    ports:
+      - port: 53
+        protocol: UDP
+
+# -----------------------------------------------------
+# PodDisruptionBudget
+# -----------------------------------------------------
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# -----------------------------------------------------
+# ServiceAccount e RBAC
+# -----------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["get", "list", "watch"]
+
+# -----------------------------------------------------
+# ConfigMap e Secret
+# -----------------------------------------------------
+config:
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+
+secret:
+  enabled: true
+  data:
+    DATABASE_URL: "postgres://user:pass@host:5432/db"
+
+# -----------------------------------------------------
+# NodeSelector / Affinity / Tolerations
+# (usados diretamente no Deployment)
+# -----------------------------------------------------
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
 
-autoscaling:
+# =====================================================
+#           🔽 RECURSOS ADICIONAIS DO CHART 🔽
+# =====================================================
+
+# -----------------------------------------------------
+# Namespace
+# -----------------------------------------------------
+namespace:
+  create: false
+  name: ""  # se vazio, usa o namespace do release
+
+# -----------------------------------------------------
+# ResourceQuota
+# -----------------------------------------------------
+resourceQuota:
   enabled: false
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
-  # Se quiser HPA por memória também, habilita aqui:
-  targetMemoryUtilizationPercentage: null
-  # targetMemoryUtilizationPercentage: 80
+  hard:
+    limits.cpu: "4"
+    limits.memory: "8Gi"
+    requests.cpu: "1"
+    requests.memory: "2Gi"
+    pods: "50"
+    services: "10"
+
+# -----------------------------------------------------
+# LimitRange
+# -----------------------------------------------------
+limitRange:
+  enabled: false
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+
+# -----------------------------------------------------
+# StorageClass
+# -----------------------------------------------------
+storageClass:
+  enabled: false
+  name: "standard"
+  provisioner: kubernetes.io/aws-ebs
+  isDefaultClass: false
+  reclaimPolicy: Delete
+  volumeBindingMode: WaitForFirstConsumer
+  allowVolumeExpansion: true
+  parameters:
+    type: gp3
+
+# -----------------------------------------------------
+# PersistentVolume
+# -----------------------------------------------------
+persistentVolume:
+  enabled: false
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  reclaimPolicy: Retain
+  storageClassName: standard
+  hostPath:
+    path: /mnt/data
+    type: DirectoryOrCreate
+  nfs:
+    server: ""
+    path: ""
+
+# -----------------------------------------------------
+# PersistentVolumeClaim
+# -----------------------------------------------------
+persistentVolumeClaim:
+  enabled: false
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  storageClassName: standard
+
+# -----------------------------------------------------
+# DaemonSet
+# -----------------------------------------------------
+daemonSet:
+  enabled: false
+  image:
+    repository: busybox
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+# -----------------------------------------------------
+# ReplicationController (legado)
+# -----------------------------------------------------
+replicationController:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: busybox
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+
+# -----------------------------------------------------
+# StatefulSet
+# -----------------------------------------------------
+statefulSet:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: ghcr.io/sua-org/sua-app
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  storage:
+    mountPath: /data
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: standard
+
+# -----------------------------------------------------
+# Job (não cron)
+# -----------------------------------------------------
+job:
+  enabled: false
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  image:
+    repository: busybox
+    tag: latest
+    pullPolicy: IfNotPresent
+  command:
+    - "/bin/sh"
+    - "-c"
+    - "echo 'running job'"
+  resources:
+    requests:
+      cpu: "20m"
+      memory: "32Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"

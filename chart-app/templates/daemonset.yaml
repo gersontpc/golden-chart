@@ -1,0 +1,26 @@
+{{- if eq .Values.app.type "daemonset" }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "app.fullname" . }}-daemon
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "app.name" . }}
+      app.kubernetes.io/component: daemon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "app.name" . }}
+        app.kubernetes.io/component: daemon
+    spec:
+      serviceAccountName: {{ include "app.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}-daemon
+          image: "{{ .Values.daemonSet.image.repository }}:{{ .Values.daemonSet.image.tag }}"
+          imagePullPolicy: {{ .Values.daemonSet.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.daemonSet.resources | nindent 12 }}
+{{- end }}

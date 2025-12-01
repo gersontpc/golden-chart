@@ -1,8 +1,16 @@
-{{- define "my-app.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "helm-golden-apps.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "my-app.fullname" -}}
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "helm-golden-apps.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -15,21 +23,39 @@
 {{- end }}
 {{- end }}
 
-{{- define "my-app.labels" -}}
-helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-app.kubernetes.io/name: {{ include "my-app.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Chart.AppVersion }}
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "helm-golden-apps.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "helm-golden-apps.labels" -}}
+helm.sh/chart: {{ include "helm-golden-apps.chart" . }}
+{{ include "helm-golden-apps.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{- define "my-app.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "my-app.name" . }}
+{{/*
+Selector labels
+*/}}
+{{- define "helm-golden-apps.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "helm-golden-apps.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
-{{- define "my-app.serviceAccountName" -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "helm-golden-apps.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "my-app.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "helm-golden-apps.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

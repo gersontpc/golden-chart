@@ -1,0 +1,25 @@
+{{- if eq .Values.app.type "job" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "app.fullname" . }}-job
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "app.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}-job
+          image: "{{ .Values.job.image.repository }}:{{ .Values.job.image.tag }}"
+          imagePullPolicy: {{ .Values.job.image.pullPolicy }}
+          command: {{- toYaml .Values.job.command | nindent 12 }}
+          resources:
+            {{- toYaml .Values.job.resources | nindent 12 }}
+{{- end }}
